@@ -1,0 +1,29 @@
+autoinstall:
+  version: 1
+  codecs:
+    install: false
+  drivers:
+    install: false
+  identity:
+    hostname: was-pod04
+    password: $5$nC1rmh0YEaljVPTW$UCWZ7hmYfM167t0VBW6fvrrBCy9d.WBwpZaG8yyt70C
+    realname: starwit01
+    username: starwit01
+  kernel:
+    package: linux-generic
+  keyboard:
+    layout: de
+    toggle: null
+    variant: ''
+  locale: en_US.UTF-8
+  timezone: "Europe/Berlin" 
+
+  source:
+    id: ubuntu-server
+    search_drivers: true
+  ssh:
+    allow-pw: true
+    authorized-keys: []
+    install-server: true
+  updates: security
+  shutdown: reboot
