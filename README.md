@@ -2,7 +2,11 @@
 
 If you are in need to auto-install Ubuntu to a device/VM with pre-defined config & packages - this repo explains, how to do that.
 
-## Configuration & How it works
+## How to use repo
+
+Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data)
+
+## How it works
 
 Boot image creation is done by the following steps:
 
