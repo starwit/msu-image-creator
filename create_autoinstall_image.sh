@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./env.sh
+
 TARGET_DIR="autoinstall_image"
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR"
@@ -7,12 +9,11 @@ cd "$TARGET_DIR"
 ISO_FILE="ubuntu-24.04-live-server-amd64.iso"
 TARGET_ISO_FILE="ubuntu-24.04-server-autoinstall.iso"
 
-# function user data, TODO get from env
-FUNCTION_USER_NAME="starwit01"
-FUNCTION_USER_PASSWORD="12345678"
+# hash password
 FUNCTION_USER_PASSWORD_HASH=$(mkpasswd -m sha-256 -s "$FUNCTION_USER_PASSWORD")
 escaped_hash=$(printf '%s\n' "$FUNCTION_USER_PASSWORD_HASH" | sed -e 's/[\/&]/\\&/g')
-HOSTNAME="pod01"
+echo "*****************************************"
+echo $escaped_hash
 
 mkdir -p "source-files"
 mkdir -p "download"
@@ -32,6 +33,7 @@ echo $PWD
 
 # remove old files
 rm -rf ./source-files
+rm -rf ./source-files/$TARGET_ISO_FILE
 
 mkdir -p ./source-files/bootpart
 
@@ -55,7 +57,12 @@ chmod u+w source-files/boot/grub/grub.cfg
 cp ../grub.cfg source-files/boot/grub/grub.cfg
 chmod u-w source-files/boot/grub/grub.cfg
 
-xorriso -as mkisofs -r -V "ubuntu-autoinstall" \
-    -J -boot-load-size 4 -boot-info-table -input-charset utf-8 \
-    -eltorito-alt-boot -b source-files/bootpart/eltorito_img1_bios.img -no-emul-boot \
-    -o $TARGET_ISO_FILE .
+xorriso -as mkisofs -r -V "ubuntu-24-autoinstall" \
+  -J -boot-load-size 4 -boot-info-table -input-charset utf-8 \
+  -b bootpart/eltorito_img1_bios.img \
+     -no-emul-boot -boot-load-size 4 -boot-info-table \
+  -eltorito-alt-boot \
+  -e bootpart/eltorito_img2_uefi.img \
+     -no-emul-boot -isohybrid-gpt-basdat \
+  -isohybrid-mbr source-files/bootpart/mbr_code_grub2.img \
+  -o "$TARGET_ISO_FILE" source-files
