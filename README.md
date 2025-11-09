@@ -4,7 +4,26 @@ If you are in need to auto-install Ubuntu to a device/VM with pre-defined config
 
 ## How to use repo
 
-Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data)
+Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and [env.sh](env.sh) will hold config for machine like username and password.
+
+After creation script ran, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer.
+
+If you want to test ISO with a virtual machine, you can use KVM/Qemu to do so. Please note, that you need to copy ISO to the configured storage pools in your configuration.
+```bash
+virsh pool-list
+```
+
+The following command shows how to start a VM and using created ISO to auto-install Ubuntu:
+
+```bash
+virt-install -n auto-install-test \
+--description "VM to test Ubuntu auto install" \
+--os-type=Linux --os-variant=ubuntu24.04 \
+--ram=2048 --vcpus=2 \
+--disk path=/path/to/diskfolder/autoinstall-test.img,bus=virtio,size=15 \
+--graphics spice \
+--cdrom /path/to/imagefolder/ubuntu-24.04-server-autoinstall.iso 
+```
 
 ## How it works
 
