@@ -1,6 +1,6 @@
-# Ubuntu Auto-Install Documentation
+# MSU Image Creator
 
-If you are in need to auto-install Ubuntu to a device/VM with pre-defined config & packages - this repo explains, how to do that.
+This software creates an Ubuntu server base image, to be used on MSU embedded devices that are developed in cooperation with [Gerhartl](https://www.gerhartl.de/en/homepage/)
 
 ## How to use repo
 
