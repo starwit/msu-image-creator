@@ -2,6 +2,8 @@
 
 source ./env.sh
 
+FUNCTION_USER_PASSWORD=`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18 ; echo ''`
+
 TARGET_DIR="autoinstall_image"
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR"
@@ -66,3 +68,8 @@ xorriso -as mkisofs -r -V "ubuntu-24-autoinstall" \
      -no-emul-boot -isohybrid-gpt-basdat \
   -isohybrid-mbr source-files/bootpart/mbr_code_grub2.img \
   -o "$TARGET_ISO_FILE" source-files
+
+echo "*****************************************"
+echo "Function user password: $FUNCTION_USER_PASSWORD"
+echo "Please not this password, as it will not shown again and there is no other way to login into machine."
+echo "*****************************************"

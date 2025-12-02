@@ -4,7 +4,7 @@ This software creates an Ubuntu server base image, to be used on MSU embedded de
 
 ## How to use repo
 
-Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and [env.sh](env.sh) will hold config for machine like username and password.
+Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and [env.sh](env.sh). In env.sh you can define name of main user to be created and hostname of machine. Note that password is generated upon image creation.
 
 After creation script ran, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer.
 
@@ -26,8 +26,7 @@ virt-install -n auto-install-test \
 ```
 
 ## How it works
-
-Boot image creation is done by the following steps:
+This section shall explain main steps, how disk image is created. Look here if you want to modify image creation script.
 
 0. Install xorriso with sudo apt update && sudo apt install xorriso
 1. Download base image (e.g. [Ubuntu server](https://ubuntu.com/download/server))
@@ -53,3 +52,6 @@ Boot image creation is done by the following steps:
     ```
 
 8. Test with VM
+
+# License
+Code is published using AGPLv3 license. License agreement can be found [here](LICENSE)
