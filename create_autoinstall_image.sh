@@ -18,6 +18,14 @@ if [ "$missing" -ne 0 ]; then
     exit 1
 fi
 
+# fail if any required tool is not installed
+for cmd in mkpasswd xorriso wget; do
+    if ! command -v "$cmd" > /dev/null; then
+        echo "required tool $cmd is not installed (mkpasswd is part of package whois)" >&2
+        exit 1
+    fi
+done
+
 # test if password variable is set via env var
 if [ -z "${MSU_FUNCTION_USER_PASSWORD}" ]; then
     echo "no user password set, generate one"
@@ -33,7 +41,11 @@ ISO_FILE="ubuntu-26.04.1-live-server-amd64.iso"
 TARGET_ISO_FILE="ubuntu-26.04.1-server-autoinstall.iso"
 
 # hash password
-MSU_FUNCTION_USER_PASSWORD_HASH=$(mkpasswd -m sha-256 -s "$MSU_FUNCTION_USER_PASSWORD")
+MSU_FUNCTION_USER_PASSWORD_HASH=$(printf '%s' "$MSU_FUNCTION_USER_PASSWORD" | mkpasswd -m sha-256 -s)
+if [ $? -ne 0 ] || [ -z "$MSU_FUNCTION_USER_PASSWORD_HASH" ]; then
+    echo "failed to hash user password" >&2
+    exit 1
+fi
 escaped_hash=$(printf '%s\n' "$MSU_FUNCTION_USER_PASSWORD_HASH" | sed -e 's/[\/&]/\\&/g')
 echo "*****************************************"
 echo $escaped_hash

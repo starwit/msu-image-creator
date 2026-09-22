@@ -17,27 +17,26 @@ The easiest way to set them is to copy env.sh.template to env.sh and fill in you
 
 After creation script ran, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer.
 
-If you want to test ISO with a virtual machine, you can use KVM/Qemu to do so. Please note, that you need to copy ISO to the configured storage pools in your configuration.
+To test the ISO in a KVM/Qemu virtual machine, run this from the repo root:
+
 ```bash
-virsh pool-list
+virt-install -n autoinstall-test \
+--os-variant=ubuntu24.04 \
+--memory=2048 --vcpus=2 \
+--disk size=15 \
+--cdrom "$PWD/autoinstall_image/ubuntu-26.04.1-server-autoinstall.iso"
 ```
 
-The following command shows how to start a VM and using created ISO to auto-install Ubuntu:
+The disk is created automatically in libvirt's default storage pool. If libvirt can't read the ISO from your home directory, virt-install offers to fix the permissions for you. To remove the test VM and its disk afterwards:
 
 ```bash
-virt-install -n auto-install-test \
---description "VM to test Ubuntu auto install" \
---os-type=Linux --os-variant=ubuntu24.04 \
---ram=2048 --vcpus=2 \
---disk path=/path/to/diskfolder/autoinstall-test.img,bus=virtio,size=15 \
---graphics spice \
---cdrom /path/to/imagefolder/ubuntu-24.04-server-autoinstall.iso 
+virsh destroy autoinstall-test; virsh undefine autoinstall-test --remove-all-storage
 ```
 
 ## How it works
 This section shall explain main steps, how disk image is created. Look here if you want to modify image creation script.
 
-0. Install xorriso with sudo apt update && sudo apt install xorriso
+0. Install xorriso and mkpasswd with sudo apt update && sudo apt install xorriso whois
 1. Download base image (e.g. [Ubuntu server](https://ubuntu.com/download/server))
 2. Extract ISO file to a folder on your disk
     ```bash
