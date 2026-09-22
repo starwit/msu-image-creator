@@ -7,7 +7,7 @@ fi
 
 # fail if any required variable is not set
 missing=0
-for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN; do
+for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN TARGET_ISO_FILE; do
     if [ -z "${!var}" ]; then
         echo "required variable $var is not set" >&2
         missing=1
@@ -15,6 +15,7 @@ for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN; do
 done
 if [ "$missing" -ne 0 ]; then
     echo "Please check if env.sh exists and is configured (or the env vars are set through other means)"
+    echo "TARGET_ISO_FILE is set by the Makefile, run 'make image' instead of calling the script directly"
     exit 1
 fi
 
@@ -33,12 +34,10 @@ if [ -z "${MSU_FUNCTION_USER_PASSWORD}" ]; then
 fi
 
 
+DOWNLOAD_DIR="download-cache"
 TARGET_DIR="autoinstall_image"
-mkdir -p "$TARGET_DIR"
-cd "$TARGET_DIR"
 
 ISO_FILE="ubuntu-26.04.1-live-server-amd64.iso"
-TARGET_ISO_FILE="ubuntu-26.04.1-server-autoinstall.iso"
 
 # hash password
 MSU_FUNCTION_USER_PASSWORD_HASH=$(printf '%s' "$MSU_FUNCTION_USER_PASSWORD" | mkpasswd -m sha-256 -s)
@@ -50,21 +49,17 @@ escaped_hash=$(printf '%s\n' "$MSU_FUNCTION_USER_PASSWORD_HASH" | sed -e 's/[\/&
 echo "*****************************************"
 echo $escaped_hash
 
-mkdir -p "source-files"
-mkdir -p "download"
-cd ./download
-
 # Download ISO if not already present
 ISO_URL="https://mirror.wtnet.de/ubuntu-releases/26.04.1/ubuntu-26.04.1-live-server-amd64.iso"
 
-if [ ! -f "$ISO_FILE" ]; then
+mkdir -p "$DOWNLOAD_DIR"
+if [ ! -f "$DOWNLOAD_DIR/$ISO_FILE" ]; then
     echo "Downloading Ubuntu ISO..."
-    wget -O "$ISO_FILE" "$ISO_URL"
+    wget -O "$DOWNLOAD_DIR/$ISO_FILE" "$ISO_URL"
 fi
 
-cd ..
-
-echo $PWD
+mkdir -p "$TARGET_DIR"
+cd "$TARGET_DIR"
 
 # remove old files (extracted ISO content is read-only, make it writable first)
 [ -d ./source-files ] && chmod -R u+w ./source-files
@@ -74,7 +69,7 @@ rm -f ./$TARGET_ISO_FILE
 mkdir -p ./source-files/bootpart
 
 # extract original ISO
-xorriso -osirrox on -indev ./download/$ISO_FILE --extract_boot_images ./source-files/bootpart -extract / ./source-files
+xorriso -osirrox on -indev ../$DOWNLOAD_DIR/$ISO_FILE --extract_boot_images ./source-files/bootpart -extract / ./source-files
 
 # xorriso keeps the read-only permissions of the ISO, make the extracted files writable
 chmod -R u+w ./source-files

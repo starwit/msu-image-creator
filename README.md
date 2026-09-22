@@ -15,23 +15,33 @@ Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downlo
 
 The easiest way to set them is to copy env.sh.template to env.sh and fill in your values; the script sources env.sh if it exists. It is optional though, so you can also set the variables in any other way (e.g. export them in your shell or CI pipeline). The script aborts if any required variable is not set.
 
-After creation script ran, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer.
-
-To test the ISO in a KVM/Qemu virtual machine, run this from the repo root:
+To create the image, run:
 
 ```bash
-virt-install -n autoinstall-test \
---os-variant=ubuntu24.04 \
---memory=2048 --vcpus=2 \
---disk size=15 \
---cdrom "$PWD/autoinstall_image/ubuntu-26.04.1-server-autoinstall.iso"
+make image
 ```
 
-The disk is created automatically in libvirt's default storage pool. If libvirt can't read the ISO from your home directory, virt-install offers to fix the permissions for you. To remove the test VM and its disk afterwards:
+After that, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer. The downloaded Ubuntu base ISO is cached in folder _download-cache_, so it is only downloaded once. Name of the created ISO is set via `TARGET_ISO_FILE` in the [Makefile](Makefile).
+
+To remove all generated files (the download cache is kept), run:
 
 ```bash
-virsh destroy autoinstall-test; virsh undefine autoinstall-test --remove-all-storage
+make clean
 ```
+
+To test the ISO in a KVM/Qemu virtual machine (the image is created first if it doesn't exist yet):
+
+```bash
+make start-vm
+```
+
+The VM disk is created automatically in libvirt's default storage pool. If libvirt can't read the ISO from your home directory, virt-install offers to fix the permissions for you. To remove the test VM and its disk afterwards:
+
+```bash
+make cleanup-vm
+```
+
+VM name and libvirt connection can be overridden, e.g. `make start-vm VM_NAME=my-test LIBVIRT_URI=qemu:///session`.
 
 ## How it works
 This section shall explain main steps, how disk image is created. Look here if you want to modify image creation script.
