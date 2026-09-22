@@ -66,14 +66,18 @@ cd ..
 
 echo $PWD
 
-# remove old files
+# remove old files (extracted ISO content is read-only, make it writable first)
+[ -d ./source-files ] && chmod -R u+w ./source-files
 rm -rf ./source-files
-rm -rf ./source-files/$TARGET_ISO_FILE
+rm -f ./$TARGET_ISO_FILE
 
 mkdir -p ./source-files/bootpart
 
 # extract original ISO
 xorriso -osirrox on -indev ./download/$ISO_FILE --extract_boot_images ./source-files/bootpart -extract / ./source-files
+
+# xorriso keeps the read-only permissions of the ISO, make the extracted files writable
+chmod -R u+w ./source-files
 
 mkdir -p source-files/nocloud
 cp ../user-data source-files/nocloud/user-data
@@ -90,9 +94,7 @@ touch source-files/nocloud/meta-data
 echo "${MSU_HOSTNAME}" > source-files/nocloud/hostname.txt
 echo "${MSU_TAILSCALE_TOKEN}" > source-files/nocloud/tailscale.txt
 
-chmod u+w source-files/boot/grub/grub.cfg
 cp ../grub.cfg source-files/boot/grub/grub.cfg
-chmod u-w source-files/boot/grub/grub.cfg
 
 xorriso -as mkisofs -r -V "ubuntu-26-autoinstall" \
   -J -boot-load-size 4 -boot-info-table -input-charset utf-8 \
