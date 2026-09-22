@@ -4,7 +4,16 @@ This software creates an Ubuntu server base image, to be used on MSU embedded de
 
 ## How to use repo
 
-Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and [env.sh](env.sh). In env.sh you can define name of main user to be created and hostname of machine. Note that password is generated upon image creation.
+Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and environment variables prefixed with `MSU_` (see [env.sh.template](env.sh.template)):
+
+| Variable | Required | Description |
+|---|---|---|
+| `MSU_FUNCTION_USER_NAME` | yes | name of main user to be created |
+| `MSU_HOSTNAME` | yes | hostname of machine |
+| `MSU_TAILSCALE_TOKEN` | yes | Tailscale auth key used to join the tailnet |
+| `MSU_FUNCTION_USER_PASSWORD` | no | password of main user; generated upon image creation if not set |
+
+The easiest way to set them is to copy env.sh.template to env.sh and fill in your values; the script sources env.sh if it exists. It is optional though, so you can also set the variables in any other way (e.g. export them in your shell or CI pipeline). The script aborts if any required variable is not set.
 
 After creation script ran, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer.
 

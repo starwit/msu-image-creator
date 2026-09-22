@@ -1,11 +1,27 @@
 #!/bin/bash
 
-source ./env.sh
+# env.sh is optional, variables can also be set in the environment directly
+if [ -f ./env.sh ]; then
+    source ./env.sh
+fi
+
+# fail if any required variable is not set
+missing=0
+for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN; do
+    if [ -z "${!var}" ]; then
+        echo "required variable $var is not set" >&2
+        missing=1
+    fi
+done
+if [ "$missing" -ne 0 ]; then
+    echo "Please check if env.sh exists and is configured (or the env vars are set through other means)"
+    exit 1
+fi
 
 # test if password variable is set via env var
-if [ -z "${FUNCTION_USER_PASSWORD}" ]; then
+if [ -z "${MSU_FUNCTION_USER_PASSWORD}" ]; then
     echo "no user password set, generate one"
-    FUNCTION_USER_PASSWORD=`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18 ; echo ''`
+    MSU_FUNCTION_USER_PASSWORD=`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18 ; echo ''`
 fi
 
 
@@ -17,8 +33,8 @@ ISO_FILE="ubuntu-26.04.1-live-server-amd64.iso"
 TARGET_ISO_FILE="ubuntu-26.04.1-server-autoinstall.iso"
 
 # hash password
-FUNCTION_USER_PASSWORD_HASH=$(mkpasswd -m sha-256 -s "$FUNCTION_USER_PASSWORD")
-escaped_hash=$(printf '%s\n' "$FUNCTION_USER_PASSWORD_HASH" | sed -e 's/[\/&]/\\&/g')
+MSU_FUNCTION_USER_PASSWORD_HASH=$(mkpasswd -m sha-256 -s "$MSU_FUNCTION_USER_PASSWORD")
+escaped_hash=$(printf '%s\n' "$MSU_FUNCTION_USER_PASSWORD_HASH" | sed -e 's/[\/&]/\\&/g')
 echo "*****************************************"
 echo $escaped_hash
 
@@ -52,15 +68,15 @@ cp ../user-data source-files/nocloud/user-data
 
 # replacing placeholders
 echo "Setting hostname"
-sed -i -e "s/###HOSTNAME###/${HOSTNAME}/g" source-files/nocloud/user-data
+sed -i -e "s/###HOSTNAME###/${MSU_HOSTNAME}/g" source-files/nocloud/user-data
 echo "Setting function user name"
-sed -i -e "s/###USER_NAME###/${FUNCTION_USER_NAME}/g" source-files/nocloud/user-data
+sed -i -e "s/###USER_NAME###/${MSU_FUNCTION_USER_NAME}/g" source-files/nocloud/user-data
 echo "Setting function user password hash"
 sed -i -e "s/###USER_PASSWORD_HASH###/${escaped_hash}/g" source-files/nocloud/user-data
 
 touch source-files/nocloud/meta-data
-echo "${HOSTNAME}" > source-files/nocloud/hostname.txt
-echo "${TAILSCALE_TOKEN}" > source-files/nocloud/tailscale.txt
+echo "${MSU_HOSTNAME}" > source-files/nocloud/hostname.txt
+echo "${MSU_TAILSCALE_TOKEN}" > source-files/nocloud/tailscale.txt
 
 chmod u+w source-files/boot/grub/grub.cfg
 cp ../grub.cfg source-files/boot/grub/grub.cfg
@@ -77,6 +93,6 @@ xorriso -as mkisofs -r -V "ubuntu-26-autoinstall" \
   -o "$TARGET_ISO_FILE" source-files
 
 echo "*****************************************"
-echo "Function user password: $FUNCTION_USER_PASSWORD"
+echo "Function user password: $MSU_FUNCTION_USER_PASSWORD"
 echo "Please note this password, as it will not shown again and there is no other way to login into machine."
 echo "*****************************************"
