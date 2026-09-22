@@ -2,14 +2,19 @@
 
 source ./env.sh
 
-FUNCTION_USER_PASSWORD=`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18 ; echo ''`
+# test if password variable is set via env var
+if [ -z "${FUNCTION_USER_PASSWORD}" ]; then
+    echo "no user password set, generate one"
+    FUNCTION_USER_PASSWORD=`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18 ; echo ''`
+fi
+
 
 TARGET_DIR="autoinstall_image"
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR"
 
-ISO_FILE="ubuntu-24.04-live-server-amd64.iso"
-TARGET_ISO_FILE="ubuntu-24.04-server-autoinstall.iso"
+ISO_FILE="ubuntu-26.04.1-live-server-amd64.iso"
+TARGET_ISO_FILE="ubuntu-26.04.1-server-autoinstall.iso"
 
 # hash password
 FUNCTION_USER_PASSWORD_HASH=$(mkpasswd -m sha-256 -s "$FUNCTION_USER_PASSWORD")
@@ -22,7 +27,7 @@ mkdir -p "download"
 cd ./download
 
 # Download ISO if not already present
-ISO_URL="https://mirror.wtnet.de/ubuntu-releases/24.04.3/ubuntu-24.04.3-live-server-amd64.iso"
+ISO_URL="https://mirror.wtnet.de/ubuntu-releases/26.04.1/ubuntu-26.04.1-live-server-amd64.iso"
 
 if [ ! -f "$ISO_FILE" ]; then
     echo "Downloading Ubuntu ISO..."
@@ -54,12 +59,14 @@ echo "Setting function user password hash"
 sed -i -e "s/###USER_PASSWORD_HASH###/${escaped_hash}/g" source-files/nocloud/user-data
 
 touch source-files/nocloud/meta-data
+echo "${HOSTNAME}" > source-files/nocloud/hostname.txt
+echo "${TAILSCALE_TOKEN}" > source-files/nocloud/tailscale.txt
 
 chmod u+w source-files/boot/grub/grub.cfg
 cp ../grub.cfg source-files/boot/grub/grub.cfg
 chmod u-w source-files/boot/grub/grub.cfg
 
-xorriso -as mkisofs -r -V "ubuntu-24-autoinstall" \
+xorriso -as mkisofs -r -V "ubuntu-26-autoinstall" \
   -J -boot-load-size 4 -boot-info-table -input-charset utf-8 \
   -b bootpart/eltorito_img1_bios.img \
      -no-emul-boot -boot-load-size 4 -boot-info-table \
@@ -71,5 +78,5 @@ xorriso -as mkisofs -r -V "ubuntu-24-autoinstall" \
 
 echo "*****************************************"
 echo "Function user password: $FUNCTION_USER_PASSWORD"
-echo "Please not this password, as it will not shown again and there is no other way to login into machine."
+echo "Please note this password, as it will not shown again and there is no other way to login into machine."
 echo "*****************************************"

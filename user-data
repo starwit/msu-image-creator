@@ -2,31 +2,9 @@
 autoinstall:
   version: 1
   late-commands:
-    - - curtin
-      - in-target
-      - --target=/target
-      - --
-      - openvt
-      - -f
-      - -c
-      - "14"
-      - -s
-      - -w
-      - --
-      - env
-      - TERM=linux
-      - PATH=/usr/bin:/usr/sbin
-      - LANG=C.utf8
-      - LC_ALL=C.utf8
-      - USER=root
-      - SHELL=/bin/bash
-      - HOME=/root
-      - bash
-      - -c
-      - |
-        read -p 'Please set customer: ' customer
-        echo $customer > /opt/customer.txt
-        sleep 10    
+    - mkdir -p /target/opt
+    - cp /cdrom/nocloud/hostname.txt /target/opt/hostname.txt
+    - cp /cdrom/nocloud/tailscale.txt /target/opt/tailscale.txt
   error-commands:
     - hostnamectl
   codecs:
@@ -78,4 +56,11 @@ autoinstall:
       - vim
       - tailscale
     runcmd:
-      - [ bash, -c, "echo '***********************************************'; CUSTOMER=$(cat /opt/customer.txt); echo $CUSTOMER; echo '***********************************************'" ]
+      - [ bash, -c, "echo '***********************************************'" ]
+      - [ bash, -c, "echo 'Setting hostname' $(cat /opt/hostname.txt)" ]
+      - [ bash, -c, "hostnamectl hostname $(cat /opt/hostname.txt)" ]
+      - [ bash, -c, "echo 'Enabling tailscale'" ]
+      - [ bash, -c, "echo 'tailscale api key' $(cat /opt/tailscale.txt)" ]
+      - [ bash, -c, "tailscale up --auth-key=$(cat /opt/tailscale.txt) --accept-routes --advertise-exit-node" ]
+      - [ rm, /opt/tailscale.txt ]
+      - [ bash, -c, "echo '***********************************************'" ]
