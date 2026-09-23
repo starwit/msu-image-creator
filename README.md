@@ -4,31 +4,49 @@ This software creates an Ubuntu server base image, to be used on MSU embedded de
 
 ## How to use repo
 
-Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and [env.sh](env.sh). In env.sh you can define name of main user to be created and hostname of machine. Note that password is generated upon image creation.
+Bash script [create_autoinstall_image.sh](create_autoinstall_image.sh) is downloading Ubuntu server 24 and do all necessary steps, to create a new autoinstall ISO image. Main configuration of your image is done via file [user-data](user-data) and environment variables prefixed with `MSU_` (see [env.sh.template](env.sh.template)):
 
-After creation script ran, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer.
+| Variable | Required | Description |
+|---|---|---|
+| `MSU_FUNCTION_USER_NAME` | yes | name of main user to be created |
+| `MSU_HOSTNAME` | yes | hostname of machine |
+| `MSU_TAILSCALE_TOKEN` | yes | Tailscale auth key used to join the tailnet |
+| `MSU_FUNCTION_USER_PASSWORD` | no | password of main user; generated upon image creation if not set |
 
-If you want to test ISO with a virtual machine, you can use KVM/Qemu to do so. Please note, that you need to copy ISO to the configured storage pools in your configuration.
+The easiest way to set them is to copy env.sh.template to env.sh and fill in your values; the script sources env.sh if it exists. It is optional though, so you can also set the variables in any other way (e.g. export them in your shell or CI pipeline). The script aborts if any required variable is not set.
+
+To create the image, run:
+
 ```bash
-virsh pool-list
+make image
 ```
 
-The following command shows how to start a VM and using created ISO to auto-install Ubuntu:
+After that, an ISO file is sitting in folder _autoinstall_image_. This you can then put on an USB stick and autoinstall with that any computer. The downloaded Ubuntu base ISO is cached in folder _download-cache_, so it is only downloaded once. Name of the created ISO is set via `TARGET_ISO_FILE` in the [Makefile](Makefile).
+
+To remove all generated files (the download cache is kept), run:
 
 ```bash
-virt-install -n auto-install-test \
---description "VM to test Ubuntu auto install" \
---os-type=Linux --os-variant=ubuntu24.04 \
---ram=2048 --vcpus=2 \
---disk path=/path/to/diskfolder/autoinstall-test.img,bus=virtio,size=15 \
---graphics spice \
---cdrom /path/to/imagefolder/ubuntu-24.04-server-autoinstall.iso 
+make clean
 ```
+
+To test the ISO in a KVM/Qemu virtual machine (the image is created first if it doesn't exist yet):
+
+```bash
+make start-vm
+```
+
+The VM disk is created automatically in libvirt's default storage pool. If libvirt can't read the ISO from your home directory, virt-install offers to fix the permissions for you. To remove the test VM and its disk afterwards:
+
+```bash
+make cleanup-vm
+```
+
+VM name and libvirt connection can be overridden, e.g. `make start-vm VM_NAME=my-test LIBVIRT_URI=qemu:///session`.
 
 ## How it works
 This section shall explain main steps, how disk image is created. Look here if you want to modify image creation script.
 
-0. Install xorriso with sudo apt update && sudo apt install xorriso
+0. Install xorriso and mkpasswd with sudo apt update && sudo apt install xorriso whois
 1. Download base image (e.g. [Ubuntu server](https://ubuntu.com/download/server))
 2. Extract ISO file to a folder on your disk
     ```bash

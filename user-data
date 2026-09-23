@@ -1,32 +1,18 @@
 #cloud-config
 autoinstall:
   version: 1
+  storage:
+    layout:
+      name: lvm
   late-commands:
-    - - curtin
-      - in-target
-      - --target=/target
-      - --
-      - openvt
-      - -f
-      - -c
-      - "14"
-      - -s
-      - -w
-      - --
-      - env
-      - TERM=linux
-      - PATH=/usr/bin:/usr/sbin
-      - LANG=C.utf8
-      - LC_ALL=C.utf8
-      - USER=root
-      - SHELL=/bin/bash
-      - HOME=/root
-      - bash
-      - -c
-      - |
-        read -p 'Please set customer: ' customer
-        echo $customer > /opt/customer.txt
-        sleep 10    
+    # The lvm layout's default sizing-policy ("scaled") only gives the root LV
+    # about half the volume group (capped at 100G on disks >= 200G). Grow it to
+    # 90% of the VG, leaving the rest as free extents for snapshots/new LVs.
+    - curtin in-target --target=/target -- lvextend -l 80%VG /dev/ubuntu-vg/ubuntu-lv
+    - curtin in-target --target=/target -- resize2fs /dev/ubuntu-vg/ubuntu-lv
+    - mkdir -p /target/opt
+    - cp /cdrom/nocloud/hostname.txt /target/opt/hostname.txt
+    - cp /cdrom/nocloud/tailscale.txt /target/opt/tailscale.txt
   error-commands:
     - hostnamectl
   codecs:
@@ -55,7 +41,6 @@ autoinstall:
     authorized-keys: []
     install-server: true
   updates: security
-  shutdown: poweroff
 
   user-data:
     apt:
@@ -78,4 +63,10 @@ autoinstall:
       - vim
       - tailscale
     runcmd:
-      - [ bash, -c, "echo '***********************************************'; CUSTOMER=$(cat /opt/customer.txt); echo $CUSTOMER; echo '***********************************************'" ]
+      - [ bash, -c, "echo '***********************************************'" ]
+      - [ bash, -c, "echo 'Setting hostname' $(cat /opt/hostname.txt)" ]
+      - [ bash, -c, "hostnamectl hostname $(cat /opt/hostname.txt)" ]
+      - [ bash, -c, "echo 'Enabling tailscale'" ]
+      - [ bash, -c, "tailscale up --auth-key=$(cat /opt/tailscale.txt)" ]
+      - [ rm, /opt/tailscale.txt ]
+      - [ bash, -c, "echo '***********************************************'" ]
