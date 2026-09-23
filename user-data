@@ -60,7 +60,6 @@ autoinstall:
       - [ bash, -c, "echo 'Setting hostname' $(cat /opt/hostname.txt)" ]
       - [ bash, -c, "hostnamectl hostname $(cat /opt/hostname.txt)" ]
       - [ bash, -c, "echo 'Enabling tailscale'" ]
-      - [ bash, -c, "echo 'tailscale api key' $(cat /opt/tailscale.txt)" ]
-      - [ bash, -c, "tailscale up --auth-key=$(cat /opt/tailscale.txt) --accept-routes --advertise-exit-node" ]
+      - [ bash, -c, "tailscale up --auth-key=$(cat /opt/tailscale.txt)" ]
       - [ rm, /opt/tailscale.txt ]
       - [ bash, -c, "echo '***********************************************'" ]
