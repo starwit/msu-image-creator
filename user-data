@@ -64,9 +64,34 @@ autoinstall:
       - tailscale
     runcmd:
       - [ bash, -c, "echo '***********************************************'" ]
-      - [ bash, -c, "echo 'Setting hostname' $(cat /opt/hostname.txt)" ]
+      - [ bash, -c, "echo \"Setting hostname $(cat /opt/hostname.txt)\"" ]
       - [ bash, -c, "hostnamectl hostname $(cat /opt/hostname.txt)" ]
       - [ bash, -c, "echo 'Enabling tailscale'" ]
       - [ bash, -c, "tailscale up --auth-key=$(cat /opt/tailscale.txt)" ]
       - [ rm, /opt/tailscale.txt ]
       - [ bash, -c, "echo '***********************************************'" ]
+    # Don't print SSH host key generation output, host keys or authorized key
+    # fingerprints to the console (would appear after final_message)
+    ssh_quiet_keygen: true
+    ssh:
+      emit_keys_to_console: false
+    no_ssh_fingerprints: true
+    final_message: |
+      ***********************************************
+      
+      
+      Setup is complete.
+
+      Press ENTER to show the login prompt and log in.
+      Then check the VPN connection (Tailscale) by typing:
+          tailscale status
+      Good: the first line shows this machine's name
+            and an address starting with 100.
+      Bad:  it says "Logged out" or "NeedsLogin".
+            Please tell your IT contact.
+
+      When you're finished, power off the machine by typing:
+          poweroff
+
+            
+      ***********************************************

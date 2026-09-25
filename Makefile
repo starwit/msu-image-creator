@@ -4,7 +4,7 @@ LIBVIRT_URI ?= qemu:///system
 export TARGET_ISO_FILE := ubuntu-26.04.1-server-autoinstall.iso
 ISO := $(CURDIR)/autoinstall_image/$(TARGET_ISO_FILE)
 
-.PHONY: image start-vm cleanup-vm clean
+.PHONY: image vm-start vm-clean clean
 
 # always rebuild, as env vars may have changed
 image:
@@ -14,14 +14,14 @@ image:
 $(ISO):
 	$(MAKE) image
 
-start-vm: $(ISO)
+vm-start: $(ISO)
 	virt-install --connect $(LIBVIRT_URI) -n $(VM_NAME) \
 		--os-variant=ubuntu24.04 \
 		--memory=2048 --vcpus=2 \
 		--disk size=15 \
 		--cdrom "$(ISO)"
 
-cleanup-vm:
+vm-clean:
 	-virsh --connect $(LIBVIRT_URI) destroy $(VM_NAME)
 	virsh --connect $(LIBVIRT_URI) undefine $(VM_NAME) --remove-all-storage
 

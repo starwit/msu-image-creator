@@ -32,16 +32,18 @@ make clean
 To test the ISO in a KVM/Qemu virtual machine (the image is created first if it doesn't exist yet):
 
 ```bash
-make start-vm
+make vm-start
 ```
 
 The VM disk is created automatically in libvirt's default storage pool. If libvirt can't read the ISO from your home directory, virt-install offers to fix the permissions for you. To remove the test VM and its disk afterwards:
 
 ```bash
-make cleanup-vm
+make vm-clean
 ```
 
-VM name and libvirt connection can be overridden, e.g. `make start-vm VM_NAME=my-test LIBVIRT_URI=qemu:///session`.
+VM name and libvirt connection can be overridden, e.g. `make vm-start VM_NAME=my-test LIBVIRT_URI=qemu:///session`.
+
+By default the VM commands connect to the system libvirt instance (`qemu:///system`). If your user is not in the `libvirt` group, you may need to run them with sudo, e.g. `sudo make vm-start`. In that case, build the image beforehand with `make image` (without sudo), so the generated files aren't owned by root.
 
 ## How it works
 This section shall explain main steps, how disk image is created. Look here if you want to modify image creation script.
