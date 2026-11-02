@@ -15,10 +15,11 @@ $(ISO):
 	$(MAKE) image
 
 vm-start: $(ISO)
+	@command -v virt-viewer > /dev/null || echo "NOTE: virt-viewer is not installed, so the VM window won't open automatically. Install it (sudo apt install virt-viewer) or open the VM in virt-manager."
 	virt-install --connect $(LIBVIRT_URI) -n $(VM_NAME) \
 		--os-variant=ubuntu24.04 \
-		--memory=2048 --vcpus=2 \
-		--disk size=15 \
+		--memory=4096 --vcpus=2 \
+		--disk size=60 \
 		--cdrom "$(ISO)"
 
 vm-clean:
