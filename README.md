@@ -41,7 +41,7 @@ These are set in `env.sh` (see [env.sh.template](env.sh.template)). The build sc
 | `MSU_FUNCTION_USER_NAME` | yes | name of the main user to be created |
 | `MSU_HOSTNAME` | yes | hostname of the machine |
 | `MSU_TAILSCALE_TOKEN` | yes | Tailscale auth key used to join the tailnet |
-| `MSU_SAE_VERSION` | yes | version of the SAE helm chart (e.g. `13.2.1`), used to generate the list of images to pre-download |
+| `MSU_SAE_VERSION` | yes | version of the SAE helm chart (e.g. `13.2.2`), used to generate the list of images to pre-download |
 | `MSU_FUNCTION_USER_PASSWORD` | no | password of the main user; generated during the build if not set |
 | `MSU_K3S_VERSION` | no | K3s release (e.g. `v1.34.1+k3s1`) or channel (e.g. `stable`, `latest`) to install; defaults to `stable` |
 
@@ -49,7 +49,7 @@ These are set in `env.sh` (see [env.sh.template](env.sh.template)). The build sc
 
 The list of images is generated during the build by rendering the SAE helm chart in version `MSU_SAE_VERSION` (see [SAE image provisioning](https://github.com/starwit/starwit-awareness-engine/tree/main/helm#image-provisioning)):
 
-- [sae-components.txt](sae-components.txt) selects which SAE components are enabled (`true`/`false` per component). All components are disabled by default, so test installations are quick. In that case only the images the chart always deploys (Valkey, monitoring) are pulled. Some components (e.g. `cleaningStatusFilter`) need settings beyond the chart defaults and make the build fail when enabled.
+- [sae-components.txt](sae-components.txt) selects which SAE components are enabled (`true`/`false` per component). All components are disabled by default, so test installations are quick. In that case only the images the chart always deploys (Valkey, monitoring) are pulled.
 - [extra-images.txt](extra-images.txt) lists further images that are not part of the chart, one per line, e.g. custom object detector weights (`docker.io/starwitorg/sae-object-detector-weights:<tag>`).
 
 Images are pulled on the device during the first boot setup, so the ISO size doesn't change.

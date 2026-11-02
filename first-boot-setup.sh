@@ -87,6 +87,33 @@ retry() {
     done
 }
 
+# containerd's content store, downloaded image layers end up here
+CONTENT_DIR="/var/lib/rancher/k3s/agent/containerd/io.containerd.content.v1.content"
+PROGRESS_INTERVAL=15
+
+content_size() {
+    du -sb "$CONTENT_DIR" 2>/dev/null | cut -f1 || echo 0
+}
+
+# pull_image <image>, prints progress (elapsed time, downloaded MB) while pulling
+pull_image() {
+    local image="$1" start_size start_time next_report pid
+    start_size=$(content_size)
+    start_time=$SECONDS
+    next_report=$((SECONDS + PROGRESS_INTERVAL))
+    k3s crictl pull "$image" > /dev/null &
+    pid=$!
+    while kill -0 "$pid" 2>/dev/null; do
+        sleep 1
+        if (( SECONDS >= next_report )); then
+            echo "    still downloading: $((SECONDS - start_time))s, $(( ($(content_size) - start_size) / 1000000 )) MB"
+            next_report=$((SECONDS + PROGRESS_INTERVAL))
+        fi
+    done
+    wait "$pid" || return 1
+    echo "    done: $((SECONDS - start_time))s, $(( ($(content_size) - start_size) / 1000000 )) MB"
+}
+
 # remove a failure message of a previous run
 rm -f "$FAILED_ISSUE_FILE"
 
@@ -141,8 +168,6 @@ write-kubeconfig-group: "kube"
 node-ip: "${DUMMY_IP}"
 bind-address: "${DUMMY_IP}"
 tls-san:
-  - "${tailscale_dns}"
-  - "${host_name}"
   - "${tailscale_ip}"
 disable:
   - traefik
@@ -193,7 +218,7 @@ fi
 for i in "${!images[@]}"; do
     image="${images[$i]}"
     echo "[$((i + 1))/${#images[@]}] $image"
-    retry 3 k3s crictl pull "$image" || fail "Could not pull image $image"
+    retry 3 pull_image "$image" || fail "Could not pull image $image"
 done
 
 
