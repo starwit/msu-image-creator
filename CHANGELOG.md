@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-09
+
+### Added
+
+- Configuration variable `MSU_PROJECT_NAME`. The hostname is generated from it as
+  `msu-<project name>-init`.
+
+### Changed
+
+- The ISO name contains the project name and the SAE version instead of the hostname:
+  `msu-autoinstall-<version>-<project name>-sae<SAE version>-<date>.iso`.
+
+### Removed
+
+- **Breaking:** configuration variable `MSU_HOSTNAME` (replaced by `MSU_PROJECT_NAME`). Update your
+  `env.sh` accordingly.
+
 ## [1.0.0] - 2026-11-09
 
 Initial release.

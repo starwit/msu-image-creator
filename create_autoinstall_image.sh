@@ -7,7 +7,7 @@ fi
 
 # fail if any required variable is not set
 missing=0
-for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN MSU_SAE_VERSION; do
+for var in MSU_FUNCTION_USER_NAME MSU_PROJECT_NAME MSU_TAILSCALE_TOKEN MSU_SAE_VERSION; do
     if [ -z "${!var}" ]; then
         echo "required variable $var is not set" >&2
         missing=1
@@ -17,6 +17,16 @@ if [ "$missing" -ne 0 ]; then
     echo "Please check if env.sh exists and is configured (or the env vars are set through other means)"
     exit 1
 fi
+if [ -n "${MSU_HOSTNAME:-}" ]; then
+    echo "NOTE: MSU_HOSTNAME is no longer used, the hostname is generated from MSU_PROJECT_NAME"
+fi
+
+# the project name becomes part of the hostname, so it must be a valid hostname label
+if ! [[ "$MSU_PROJECT_NAME" =~ ^[a-z0-9]([a-z0-9-]{0,52}[a-z0-9])?$ ]]; then
+    echo "MSU_PROJECT_NAME '${MSU_PROJECT_NAME}' is invalid: use lowercase letters, digits and '-' (not at start or end), at most 54 characters" >&2
+    exit 1
+fi
+MSU_HOSTNAME="msu-${MSU_PROJECT_NAME}-init"
 
 # version of this repo (single source of truth: file VERSION), goes into the ISO name and onto the device
 MSU_VERSION=$(tr -d '[:space:]' < VERSION 2>/dev/null)
@@ -25,8 +35,8 @@ if [ -z "$MSU_VERSION" ]; then
     exit 1
 fi
 MSU_BUILD_DATE=$(date +%F)
-TARGET_ISO_FILE="msu-autoinstall-${MSU_VERSION}-${MSU_HOSTNAME}-${MSU_BUILD_DATE}.iso"
-echo "Building MSU image version ${MSU_VERSION} for host ${MSU_HOSTNAME}"
+TARGET_ISO_FILE="msu-autoinstall-${MSU_VERSION}-${MSU_PROJECT_NAME}-sae${MSU_SAE_VERSION}-${MSU_BUILD_DATE}.iso"
+echo "Building MSU image version ${MSU_VERSION} for project ${MSU_PROJECT_NAME} (hostname ${MSU_HOSTNAME}, SAE ${MSU_SAE_VERSION})"
 
 # fail if any required tool is not installed
 for cmd in mkpasswd xorriso wget helm; do

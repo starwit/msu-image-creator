@@ -4,7 +4,7 @@ This software creates an Ubuntu server base image, to be used on MSU embedded de
 
 ## Creating an image
 
-Script [create_autoinstall_image.sh](create_autoinstall_image.sh) downloads Ubuntu Server 26.04 and builds an autoinstall ISO from it. The hostname, user and Tailscale key are built into the ISO, so you create one ISO per device.
+Script [create_autoinstall_image.sh](create_autoinstall_image.sh) downloads Ubuntu Server 26.04 and builds an autoinstall ISO from it. The project name (from which the hostname is generated), user and Tailscale key are built into the ISO, so you create one ISO per project.
 
 1. **Install the build tools.** You need `xorriso`, `mkpasswd` (package _whois_), `wget` and [helm](https://helm.sh/docs/intro/install/):
     ```bash
@@ -22,13 +22,13 @@ Script [create_autoinstall_image.sh](create_autoinstall_image.sh) downloads Ubun
     ```
     The build prints the list of images that will be pre-downloaded, so you can check it. It stops with an error if a required variable is missing, a tool isn't installed or the SAE chart can't be rendered.
 5. **Note the password.** If `MSU_FUNCTION_USER_PASSWORD` isn't set, a password is generated and printed at the end of the build. It is not shown again, and there is no other way to log into the machine.
-6. **Write the ISO to a USB stick.** The ISO is in `autoinstall_image/`, named `msu-autoinstall-<version>-<hostname>-<date>.iso` (e.g. `msu-autoinstall-1.0.0-msu-creator-test-2026-11-09.iso`). `autoinstall_image/latest.iso` always points to the most recently built one. Write it with a tool of your choice. On Linux, for example (replace `/dev/sdX` with your USB stick, all data on it is lost):
+6. **Write the ISO to a USB stick.** The ISO is in `autoinstall_image/`, named `msu-autoinstall-<version>-<project name>-sae<SAE version>-<date>.iso` (e.g. `msu-autoinstall-2.0.0-myproject-sae13.2.2-2026-11-09.iso`). `autoinstall_image/latest.iso` always points to the most recently built one. Write it with a tool of your choice. On Linux, for example (replace `/dev/sdX` with your USB stick, all data on it is lost):
     ```bash
     sudo dd if=autoinstall_image/latest.iso of=/dev/sdX bs=4M status=progress conv=fsync
     ```
 7. **Install the device.** Boot the device from the USB stick. The entry "Start Ubuntu Autoinstall" is selected automatically after 10 seconds. The installation runs without any input. After the reboot, the first boot setup runs (see [What happens on the device](#what-happens-on-the-device)) and ends with `SETUP SUCCESSFUL` or `SETUP FAILED`.
 
-`make image` always rebuilds the ISO. An ISO with the same name (same version, hostname and date) is overwritten, ISOs for other hostnames or dates are kept. The Ubuntu base ISO is cached in `download-cache/`, so it is only downloaded once. To remove all generated files (the download cache is kept), run `make clean`.
+`make image` always rebuilds the ISO. An ISO with the same name (same version, project name, SAE version and date) is overwritten, other ISOs are kept. The Ubuntu base ISO is cached in `download-cache/`, so it is only downloaded once. To remove all generated files (the download cache is kept), run `make clean`.
 
 ## Customization
 
@@ -39,7 +39,7 @@ These are set in `env.sh` (see [env.sh.template](env.sh.template)). The build sc
 | Variable | Required | Description |
 |---|---|---|
 | `MSU_FUNCTION_USER_NAME` | yes | name of the main user to be created |
-| `MSU_HOSTNAME` | yes | hostname of the machine |
+| `MSU_PROJECT_NAME` | yes | name of the project (lowercase letters, digits and `-`, at most 54 characters); the hostname of the machine is set to `msu-<project name>-init` |
 | `MSU_TAILSCALE_TOKEN` | yes | Tailscale auth key used to join the tailnet |
 | `MSU_SAE_VERSION` | yes | version of the SAE helm chart (e.g. `13.2.2`), used to generate the list of images to pre-download |
 | `MSU_FUNCTION_USER_PASSWORD` | no | password of the main user; generated during the build if not set |
@@ -111,7 +111,7 @@ The script stops at the first error. It then prints `SETUP FAILED` with the fail
 The version of this repository is set in the file [VERSION](VERSION) (single source of truth) and follows [Semantic Versioning](https://semver.org). Changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
 The version shows up in
-- the name of the built ISO (`msu-autoinstall-<version>-<hostname>-<date>.iso`),
+- the name of the built ISO (`msu-autoinstall-<version>-<project name>-sae<SAE version>-<date>.iso`),
 - the output of the first boot setup: at the start, and in the `SETUP SUCCESSFUL` / `SETUP FAILED` message (also in `/var/log/cloud-init-output.log`),
 - the file `/opt/msu/setup.env` on the device (`MSU_VERSION`, `MSU_BUILD_DATE`).
 
