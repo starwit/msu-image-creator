@@ -7,7 +7,7 @@ fi
 
 # fail if any required variable is not set
 missing=0
-for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN TARGET_ISO_FILE; do
+for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN MSU_SAE_VERSION TARGET_ISO_FILE; do
     if [ -z "${!var}" ]; then
         echo "required variable $var is not set" >&2
         missing=1
@@ -20,7 +20,7 @@ if [ "$missing" -ne 0 ]; then
 fi
 
 # fail if any required tool is not installed
-for cmd in mkpasswd xorriso wget; do
+for cmd in mkpasswd xorriso wget helm; do
     if ! command -v "$cmd" > /dev/null; then
         echo "required tool $cmd is not installed (mkpasswd is part of package whois)" >&2
         exit 1
@@ -33,6 +33,31 @@ if [ -z "${MSU_FUNCTION_USER_PASSWORD}" ]; then
     MSU_FUNCTION_USER_PASSWORD=`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 18 ; echo ''`
 fi
 
+# K3s release (e.g. v1.34.1+k3s1) or channel to install
+MSU_K3S_VERSION="${MSU_K3S_VERSION:-stable}"
+
+# generate list of images to pre-download onto the device
+# see https://github.com/starwit/starwit-awareness-engine/tree/main/helm#image-provisioning
+echo "Generating image list for SAE helm chart version ${MSU_SAE_VERSION}"
+sae_set_flags=$(sed -E '/^\s*(#|$)/d; s/^\s*(\S+)\s+(\S+).*/--set \1.enabled=\2/' sae-components.txt)
+# shellcheck disable=SC2086 # flags need to be word-split
+if ! sae_manifests=$(helm template sae oci://registry-1.docker.io/starwitorg/sae --version "$MSU_SAE_VERSION" $sae_set_flags); then
+    echo "failed to render SAE helm chart version ${MSU_SAE_VERSION}, see helm error above (does the version exist, are the components in sae-components.txt valid?)" >&2
+    exit 1
+fi
+images=$(
+    {
+        printf '%s\n' "$sae_manifests" | grep 'image:' \
+            | sed -E 's/^.*image: *"?([^"]+)"?.*$/\1/; /^[^/]+$/s|^|docker.io/library/|; /^(localhost|[^/]*[.:][^/]*)\//!s|^|docker.io/|'
+        sed -E '/^\s*(#|$)/d; s/^\s+//; s/\s+$//' extra-images.txt
+    } | sort -u
+)
+if [ -z "$images" ]; then
+    echo "WARNING: image list is empty, no images will be pre-downloaded"
+else
+    echo "Images to pre-download:"
+    printf '%s\n' "$images" | sed 's/^/  /'
+fi
 
 DOWNLOAD_DIR="download-cache"
 TARGET_DIR="autoinstall_image"
@@ -88,6 +113,9 @@ sed -i -e "s/###USER_PASSWORD_HASH###/${escaped_hash}/g" source-files/nocloud/us
 touch source-files/nocloud/meta-data
 echo "${MSU_HOSTNAME}" > source-files/nocloud/hostname.txt
 echo "${MSU_TAILSCALE_TOKEN}" > source-files/nocloud/tailscale.txt
+printf 'K3S_VERSION=%q\n' "$MSU_K3S_VERSION" > source-files/nocloud/setup.env
+printf '%s\n' "$images" > source-files/nocloud/images.txt
+cp ../first-boot-setup.sh source-files/nocloud/first-boot-setup.sh
 
 cp ../grub.cfg source-files/boot/grub/grub.cfg
 

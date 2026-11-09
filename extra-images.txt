@@ -1,0 +1,5 @@
+# Additional images to pre-download onto the device, one per line.
+# Use this for images that are not part of the SAE helm chart's image list,
+# e.g. custom model weights for object-detector (objectDetector.customWeights).
+#
+# docker.io/starwitorg/sae-object-detector-weights:<tag>
