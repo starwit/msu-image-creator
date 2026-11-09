@@ -22,13 +22,13 @@ Script [create_autoinstall_image.sh](create_autoinstall_image.sh) downloads Ubun
     ```
     The build prints the list of images that will be pre-downloaded, so you can check it. It stops with an error if a required variable is missing, a tool isn't installed or the SAE chart can't be rendered.
 5. **Note the password.** If `MSU_FUNCTION_USER_PASSWORD` isn't set, a password is generated and printed at the end of the build. It is not shown again, and there is no other way to log into the machine.
-6. **Write the ISO to a USB stick.** The ISO is in `autoinstall_image/` (name set by `TARGET_ISO_FILE` in the [Makefile](Makefile)). Write it with a tool of your choice. On Linux, for example (replace `/dev/sdX` with your USB stick, all data on it is lost):
+6. **Write the ISO to a USB stick.** The ISO is in `autoinstall_image/`, named `msu-autoinstall-<version>-<hostname>-<date>.iso` (e.g. `msu-autoinstall-1.0.0-msu-creator-test-2026-11-09.iso`). `autoinstall_image/latest.iso` always points to the most recently built one. Write it with a tool of your choice. On Linux, for example (replace `/dev/sdX` with your USB stick, all data on it is lost):
     ```bash
-    sudo dd if=autoinstall_image/ubuntu-26.04.1-server-autoinstall.iso of=/dev/sdX bs=4M status=progress conv=fsync
+    sudo dd if=autoinstall_image/latest.iso of=/dev/sdX bs=4M status=progress conv=fsync
     ```
 7. **Install the device.** Boot the device from the USB stick. The entry "Start Ubuntu Autoinstall" is selected automatically after 10 seconds. The installation runs without any input. After the reboot, the first boot setup runs (see [What happens on the device](#what-happens-on-the-device)) and ends with `SETUP SUCCESSFUL` or `SETUP FAILED`.
 
-`make image` always rebuilds the ISO and overwrites the previous one. The Ubuntu base ISO is cached in `download-cache/`, so it is only downloaded once. To remove all generated files (the download cache is kept), run `make clean`.
+`make image` always rebuilds the ISO. An ISO with the same name (same version, hostname and date) is overwritten, ISOs for other hostnames or dates are kept. The Ubuntu base ISO is cached in `download-cache/`, so it is only downloaded once. To remove all generated files (the download cache is kept), run `make clean`.
 
 ## Customization
 
@@ -61,7 +61,8 @@ Images are pulled on the device during the first boot setup, so the ISO size doe
 | Ubuntu installation (disk layout, keyboard, locale, timezone, packages, final message) | [user-data](user-data) |
 | Intel GPU device plugin version (`INTEL_DEVICE_PLUGINS_VERSION`), dummy interface IP for K3s (`DUMMY_IP`), K3s configuration | [first-boot-setup.sh](first-boot-setup.sh) |
 | Ubuntu base ISO (`ISO_FILE`, `ISO_URL`) | [create_autoinstall_image.sh](create_autoinstall_image.sh) |
-| Name of the created ISO (`TARGET_ISO_FILE`), test VM settings | [Makefile](Makefile) |
+| Name of the created ISO (`TARGET_ISO_FILE`) | [create_autoinstall_image.sh](create_autoinstall_image.sh) |
+| Test VM settings | [Makefile](Makefile) |
 | Boot menu and timeout | [grub.cfg](grub.cfg) |
 
 ## Testing in a VM
@@ -104,6 +105,22 @@ After Ubuntu is installed and the machine has rebooted, cloud-init runs [first-b
 6. pre-downloads the application images.
 
 The script stops at the first error. It then prints `SETUP FAILED` with the failed step and command on the console, shows the same message in front of the login prompt and `cloud-init status` reports an error. The full output is in `/var/log/cloud-init-output.log`. If everything worked, it prints `SETUP SUCCESSFUL`.
+
+## Versioning and releases
+
+The version of this repository is set in the file [VERSION](VERSION) (single source of truth) and follows [Semantic Versioning](https://semver.org). Changes are documented in [CHANGELOG.md](CHANGELOG.md).
+
+The version shows up in
+- the name of the built ISO (`msu-autoinstall-<version>-<hostname>-<date>.iso`),
+- the output of the first boot setup: at the start, and in the `SETUP SUCCESSFUL` / `SETUP FAILED` message (also in `/var/log/cloud-init-output.log`),
+- the file `/opt/msu/setup.env` on the device (`MSU_VERSION`, `MSU_BUILD_DATE`).
+
+To create a release:
+
+1. While working, add your changes to the `[Unreleased]` section of [CHANGELOG.md](CHANGELOG.md).
+2. Rename `[Unreleased]` to the new version and date (e.g. `## [1.1.0] - 2026-12-01`), add a new empty `[Unreleased]` section and set the new version in [VERSION](VERSION).
+3. Merge to `main`.
+4. In GitHub, go to _Actions_ → _Release_ → _Run workflow_ (on `main`). The [workflow](.github/workflows/release.yml) creates the tag `v<version>` and a GitHub release that links to the changelog and lists the changes since the previous release. It fails if the tag already exists or the changelog has no entry for the version.
 
 ## How it works
 This section shall explain main steps, how disk image is created. Look here if you want to modify image creation script.
