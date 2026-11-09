@@ -166,6 +166,7 @@ cat > /etc/rancher/k3s/config.yaml <<EOF
 write-kubeconfig-mode: "0640"
 write-kubeconfig-group: "kube"
 node-ip: "${DUMMY_IP}"
+node-name: local
 bind-address: "${DUMMY_IP}"
 tls-san:
   - "${tailscale_ip}"
