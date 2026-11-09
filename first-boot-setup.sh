@@ -118,6 +118,14 @@ pull_image() {
 rm -f "$FAILED_ISSUE_FILE"
 
 
+# Only affects later boots: cloud-init's package installation (before this script)
+# still waited for the network. Afterwards the wait only delays booting by up to
+# 2 minutes when the network is down and makes debugging harder.
+# Done first so it also applies when a later step fails.
+step "Disable waiting for network on boot"
+systemctl mask systemd-networkd-wait-online.service
+
+
 step "Set hostname"
 host_name="$(cat "$SETUP_DIR/hostname.txt")"
 [ -n "$host_name" ] || fail "Hostname file $SETUP_DIR/hostname.txt is empty"
