@@ -21,6 +21,7 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 # shellcheck source=/dev/null
 source "$SETUP_DIR/setup.env"
 K3S_VERSION="${K3S_VERSION:-stable}"
+VERSION_INFO="MSU image version ${MSU_VERSION:-unknown} (built ${MSU_BUILD_DATE:-unknown})"
 
 step_no=0
 current_step="preparation"
@@ -46,6 +47,8 @@ report_failure() {
 
 SETUP FAILED in step ${step_no}: ${current_step}
 ${reason}
+
+${VERSION_INFO}
 
 Please tell your IT contact.
 Details are in /var/log/cloud-init-output.log
@@ -117,6 +120,20 @@ pull_image() {
 # remove a failure message of a previous run
 rm -f "$FAILED_ISSUE_FILE"
 
+echo
+banner
+echo "MSU first boot setup"
+echo "$VERSION_INFO"
+banner
+
+
+# Only affects later boots: cloud-init's package installation (before this script)
+# still waited for the network. Afterwards the wait only delays booting by up to
+# 2 minutes when the network is down and makes debugging harder.
+# Done first so it also applies when a later step fails.
+step "Disable waiting for network on boot"
+systemctl mask systemd-networkd-wait-online.service
+
 
 step "Set hostname"
 host_name="$(cat "$SETUP_DIR/hostname.txt")"
@@ -166,6 +183,7 @@ cat > /etc/rancher/k3s/config.yaml <<EOF
 write-kubeconfig-mode: "0640"
 write-kubeconfig-group: "kube"
 node-ip: "${DUMMY_IP}"
+node-name: local
 bind-address: "${DUMMY_IP}"
 tls-san:
   - "${tailscale_ip}"
@@ -226,5 +244,7 @@ echo
 banner
 echo
 echo "SETUP SUCCESSFUL"
+echo
+echo "$VERSION_INFO"
 echo
 banner

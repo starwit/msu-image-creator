@@ -1,8 +1,8 @@
 VM_NAME     ?= autoinstall-test
 LIBVIRT_URI ?= qemu:///system
 
-export TARGET_ISO_FILE := ubuntu-26.04.1-server-autoinstall.iso
-ISO := $(CURDIR)/autoinstall_image/$(TARGET_ISO_FILE)
+# most recently built ISO (symlink created by create_autoinstall_image.sh)
+ISO := $(CURDIR)/autoinstall_image/latest.iso
 
 .PHONY: image vm-start vm-clean clean
 

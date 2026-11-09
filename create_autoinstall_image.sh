@@ -7,7 +7,7 @@ fi
 
 # fail if any required variable is not set
 missing=0
-for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN MSU_SAE_VERSION TARGET_ISO_FILE; do
+for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN MSU_SAE_VERSION; do
     if [ -z "${!var}" ]; then
         echo "required variable $var is not set" >&2
         missing=1
@@ -15,9 +15,18 @@ for var in MSU_FUNCTION_USER_NAME MSU_HOSTNAME MSU_TAILSCALE_TOKEN MSU_SAE_VERSI
 done
 if [ "$missing" -ne 0 ]; then
     echo "Please check if env.sh exists and is configured (or the env vars are set through other means)"
-    echo "TARGET_ISO_FILE is set by the Makefile, run 'make image' instead of calling the script directly"
     exit 1
 fi
+
+# version of this repo (single source of truth: file VERSION), goes into the ISO name and onto the device
+MSU_VERSION=$(tr -d '[:space:]' < VERSION 2>/dev/null)
+if [ -z "$MSU_VERSION" ]; then
+    echo "could not read version from file VERSION (run the script from the repository root)" >&2
+    exit 1
+fi
+MSU_BUILD_DATE=$(date +%F)
+TARGET_ISO_FILE="msu-autoinstall-${MSU_VERSION}-${MSU_HOSTNAME}-${MSU_BUILD_DATE}.iso"
+echo "Building MSU image version ${MSU_VERSION} for host ${MSU_HOSTNAME}"
 
 # fail if any required tool is not installed
 for cmd in mkpasswd xorriso wget helm; do
@@ -113,7 +122,11 @@ sed -i -e "s/###USER_PASSWORD_HASH###/${escaped_hash}/g" source-files/nocloud/us
 touch source-files/nocloud/meta-data
 echo "${MSU_HOSTNAME}" > source-files/nocloud/hostname.txt
 echo "${MSU_TAILSCALE_TOKEN}" > source-files/nocloud/tailscale.txt
-printf 'K3S_VERSION=%q\n' "$MSU_K3S_VERSION" > source-files/nocloud/setup.env
+{
+    printf 'MSU_VERSION=%q\n' "$MSU_VERSION"
+    printf 'MSU_BUILD_DATE=%q\n' "$MSU_BUILD_DATE"
+    printf 'K3S_VERSION=%q\n' "$MSU_K3S_VERSION"
+} > source-files/nocloud/setup.env
 printf '%s\n' "$images" > source-files/nocloud/images.txt
 cp ../first-boot-setup.sh source-files/nocloud/first-boot-setup.sh
 
@@ -129,6 +142,11 @@ xorriso -as mkisofs -r -V "ubuntu-26-autoinstall" \
   -isohybrid-mbr source-files/bootpart/mbr_code_grub2.img \
   -o "$TARGET_ISO_FILE" source-files
 
+# stable name for the most recently built ISO (used by make vm-start)
+ln -sfn "$TARGET_ISO_FILE" latest.iso
+
+echo "*****************************************"
+echo "Created ISO: ${TARGET_DIR}/${TARGET_ISO_FILE} (also available as ${TARGET_DIR}/latest.iso)"
 echo "*****************************************"
 echo "Function user password: $MSU_FUNCTION_USER_PASSWORD"
 echo "Please note this password, as it will not shown again and there is no other way to login into machine."
